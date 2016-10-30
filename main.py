@@ -33,7 +33,8 @@ class bluetigers(TorrentProvider, MovieProvider):
         searcher = Searcher()
         index = self.getJsonData(self.urls['index'])
 
-        title = title.decode('utf8')
+        if isinstance(title, str):
+            title = title.decode('utf8')
 
         # movieYear = année du film référencée par CP
         movieYear = str(movie['info']['year'])
