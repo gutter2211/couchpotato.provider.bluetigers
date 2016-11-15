@@ -7,6 +7,7 @@ cd $CouchPotatoServerdir/custom_plugins # you can find $CouchPotatoServerdir pat
 git clone https://github.com/gutter2211/couchpotato.provider.bluetigers.git bluetigers
 
 Some parts of Code come form :
+
 https://github.com/djoole/couchpotato.provider.HDO
 and
 https://github.com/djoole/couchpotato.provider.t411
