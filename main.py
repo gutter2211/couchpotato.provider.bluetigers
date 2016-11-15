@@ -38,87 +38,148 @@ class bluetigers(TorrentProvider, MovieProvider):
 
         # movieYear = année du film référencée par CP
         movieYear = str(movie['info']['year'])
-        frTitle = title
         # frTitle = titre version française récupéré sur TMDB
         frTitle = self.getFrenchTitle(title, movieYear)
         if frTitle is None:
             frTitle = title
 
         log.debug('#### CP is using this movie title : ' + title)
-        log.debug('#### Searching BlueTigers for the FR title : ' + frTitle)
-
+        log.debug('#### Searching BlueTigers for the CP title : ' + frTitle)
+        request = urllib2.quote(title.encode('utf8'))
         if (self.conf('ignoreyear')):
-            searchRequest = frTitle.encode('utf8')
+            searchUrl = self.urls['search'] % request
         else:
-            searchRequest = frTitle.encode('utf8') + " " + movieYear
-        searchUrl = self.urls['search'] % urllib2.quote(searchRequest)
+            searchUrl = (self.urls['search'] + '&year=%s') % (request, movieYear)
         data = self.urlopen(searchUrl)
         if data:
-            try:
-                html = BeautifulSoup(data)
-                lin=1
-                erlin=0
-                resultdiv=[]
-                while erlin==0:
-                    try:
-                        classlin='ttable_col'+str(lin)
-                        resultlin=html.findAll(attrs = {'class' : [classlin]})
-                        if resultlin:
-                            for ele in resultlin:
-                                resultdiv.append(ele)
-                            lin+=1
-                        else:
-                            erlin=1
-                    except:
+            html = BeautifulSoup(data)
+            lin=1
+            erlin=0
+            resultdiv=[]
+            while erlin==0:
+                try:
+                    classlin='ttable_col'+str(lin)
+                    resultlin=html.findAll(attrs = {'class' : [classlin]})
+                    if resultlin:
+                        for ele in resultlin:
+                            resultdiv.append(ele)
+                        lin+=1
+                    else:
                         erlin=1
-                for result in resultdiv:
-                    try:
-                        new = {}
-                        testname=0
-                        resultb=result.find_all('b')
-                        alltext=result.find_all(text=True)
-                        for resulta in resultb:
-                            name_real=str(resulta).replace("<b>","").replace("</b>","")
-                            name=str(resulta).replace("<b>","").replace("</b>","").replace("."," ")
-                            testname=searcher.correctName(name,frTitle)
-                            if testname:
-                               break
-                        if not testname:
-                           continue
+                except:
+                    erlin=1
+            for result in resultdiv:
+                new = {}
+                testname=0
+                resultb=result.find_all('b')
+                alltext=result.find_all(text=True)
+                for resulta in resultb:
+                    name_real=str(resulta).replace("<b>","").replace("</b>","")
+                    name=str(resulta).replace("<b>","").replace("</b>","").replace("."," ")
+                    testname=searcher.correctName(name,title)
+                    if testname:
+                       break
+                if not testname:
+                   continue
 
-                        idx = result.find_all('a')[1]['href'].replace('torrents-details.php?id=','').replace('&hit=1','')
-                        detail_url = self.urls['detail'] % (idx)
-                        url_download = self.urls['download'] % (idx,name_real)
-                        size = None
-                        for index,text in enumerate(alltext):
-                            if 'Taille' in text:
-                                size=alltext[index+1].replace('MB','').replace('GB','').replace(':','')
-                                if 'GB' in alltext[index+1]:
-                                    size = float(size) * 1024
-                                break
-                        age = '1'
-                        def extra_check(item):
-                            return True
-
-                        new['id'] = idx
-                        new['name'] = name.strip()
-                        new['url'] = url_download
-                        new['detail_url'] = detail_url
-                        new['size'] = size
-                        #new['age'] = self.ageToDays(str(age))
-                        #new['seeders'] = tryInt(seeder)
-                        #new['leechers'] = tryInt(leecher)
-                        new['extra_check'] = extra_check
-                        new['download'] = self.loginDownload
-                        results.append(new)
-
-                    except:
-                        log.error('Failed parsing BlueTigers: %s', traceback.format_exc())
-
-            except AttributeError:
-                log.debug('No search results found.')
+                idx = result.find_all('a')[1]['href'].replace('torrents-details.php?id=','').replace('&hit=1','')
+                detail_url = self.urls['detail'] % (idx)
+                url_download = self.urls['download'] % (idx,name_real)
+                size = None
+                for index,text in enumerate(alltext):
+                    if 'Taille' in text:
+                        size=alltext[index+1].replace('MB','').replace('GB','').replace(':','')
+                        if 'GB' in alltext[index+1]:
+                            size = float(size) * 1024
+                        break
+                age = '1'
+                new['id'] = idx
+                new['name'] = name.strip()
+                new['url'] = url_download
+                new['detail_url'] = detail_url
+                new['size'] = size
+                #new['age'] = self.ageToDays(str(age))
+                #new['seeders'] = tryInt(seeder)
+                #new['leechers'] = tryInt(leecher)
+                #new['extra_check'] = extra_check
+                new['download'] = self.loginDownload
+                results.append(new)
         else:
             log.debug('No search results found.')
+        if not results:
+            log.debug('#### Searching BlueTigers for the FR title : ' + frTitle)
+            if (self.conf('ignoreyear')):
+                searchUrl2 = self.urls['search'] % request
+            else:
+                searchUrl2 = (self.urls['search'] + '&year=%s') % (request, movieYear)
+            data = self.urlopen(searchUrl2)
+            if data:
+                try:
+                    html = BeautifulSoup(data)
+                    lin=1
+                    erlin=0
+                    resultdiv=[]
+                    while erlin==0:
+                        try:
+                            classlin='ttable_col'+str(lin)
+                            resultlin=html.findAll(attrs = {'class' : [classlin]})
+                            if resultlin:
+                                for ele in resultlin:
+                                    resultdiv.append(ele)
+                                lin+=1
+                            else:
+                                erlin=1
+                        except:
+                            erlin=1
+                    for result in resultdiv:
+                        try:
+                            new = {}
+                            testname=0
+                            resultb=result.find_all('b')
+                            alltext=result.find_all(text=True)
+                            for resulta in resultb:
+                                name_real=str(resulta).replace("<b>","").replace("</b>","")
+                                name=str(resulta).replace("<b>","").replace("</b>","").replace("."," ")
+                                testname=searcher.correctName(name,frTitle)
+                                if testname:
+                                   break
+                            if not testname:
+                               continue
+
+                            idx = result.find_all('a')[1]['href'].replace('torrents-details.php?id=','').replace('&hit=1','')
+                            detail_url = self.urls['detail'] % (idx)
+                            url_download = self.urls['download'] % (idx,name_real)
+                            size = None
+                            for index,text in enumerate(alltext):
+                                if 'Taille' in text:
+                                    size=alltext[index+1].replace('MB','').replace('GB','').replace(':','')
+                                    if 'GB' in alltext[index+1]:
+                                        size = float(size) * 1024
+                                    break
+                            age = '1'
+                            new['id'] = idx
+                            new['name'] = name.strip()
+                            new['url'] = url_download
+                            new['detail_url'] = detail_url
+                            new['size'] = size
+                            #new['age'] = self.ageToDays(str(age))
+                            #new['seeders'] = tryInt(seeder)
+                            #new['leechers'] = tryInt(leecher)
+                            #new['extra_check'] = extra_check
+                            new['download'] = self.loginDownload
+                            results.append(new)
+
+                        except:
+                            log.error('Failed parsing BlueTigers: %s', traceback.format_exc())
+
+                except AttributeError:
+                    log.debug('No search results found.')
+            else:
+                log.debug('No search results found.')
+        else:
+            log.debug('some results are found')
+
+
 
 
     def getLoginParams(self):
